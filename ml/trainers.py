@@ -37,23 +37,33 @@ class SGD:
         self.n_trn_data = list(n_trn_data_list)[0]
         trn_data = [theano.shared(x.astype(dtype), borrow=True) for x in trn_data]
 
-        # compile theano function for a single training update
+        #! privatise this
+        # compile theano function for a single training update 
         grads = tt.grad(trn_loss, model.parms)
         idx = tt.ivector('idx')
         trn_inputs = [model.input] if trn_target is None else [model.input, trn_target]
         self.make_update = theano.function(
             inputs=[idx],
             outputs=trn_loss,
-            givens=zip(trn_inputs, [x[idx] for x in trn_data]),
+            givens=list(zip(trn_inputs, [x[idx] for x in trn_data])),
             updates=step.updates(model.parms, grads)
         )
+
+        # private version
+        # self.make_update = theano.function(
+        #     inputs=[idx],
+        #     outputs=trn_loss,
+        #     givens=list(zip(trn_inputs, [x[idx] for x in trn_data])),
+        #     updates=step.updates(model.parms, grads)
+        # )
+
 
         # if model uses batch norm, compile a theano function for setting up stats
         if getattr(model, 'batch_norm', False):
             batch_norm_givens = [(bn.m, bn.bm) for bn in model.bns] + [(bn.v, bn.bv) for bn in model.bns]
             self.set_batch_norm_stats = theano.function(
                 inputs=[],
-                givens=zip(trn_inputs, trn_data),
+                givens=list(zip(trn_inputs, trn_data)),
                 updates=[(bn.bm, bn.m) for bn in model.bns] + [(bn.bv, bn.v) for bn in model.bns]
             )
         else:
@@ -76,7 +86,7 @@ class SGD:
             self.validate = theano.function(
                 inputs=[],
                 outputs=val_loss,
-                givens=zip(val_inputs, val_data) + batch_norm_givens
+                givens=list(zip(val_inputs, val_data)) + batch_norm_givens
             )
 
             # create checkpointer to store best model
@@ -87,7 +97,7 @@ class SGD:
         self.trn_loss = float('inf')
         self.idx_stream = ds.IndexSubSampler(self.n_trn_data)
 
-    def train(self, minibatch=None, tol=None, maxepochs=None, monitor_every=None, patience=None, verbose=True, show_progress=False, val_in_same_plot=True):
+    def train(self, minibatch=None, tol=None, maxepochs=None, monitor_every=1, patience=None, verbose=True, show_progress=False, val_in_same_plot=True):
         """
         Trains the model.
         :param minibatch: minibatch size
@@ -104,6 +114,7 @@ class SGD:
         # parse input
         assert minibatch is None or util.isposint(minibatch), 'Minibatch size must be a positive integer or None.'
         assert tol is None or tol > 0.0, 'Tolerance must be positive or None.'
+        tol = -1. if tol is None else tol
         assert maxepochs is None or maxepochs > 0.0, 'Maximum number of epochs must be positive or None.'
         assert monitor_every is None or monitor_every > 0.0, 'Monitoring frequency must be positive or None.'
         assert patience is None or util.isposint(patience), 'Patience must be a positive integer or None.'
@@ -157,9 +168,9 @@ class SGD:
                 # print info
                 if verbose:
                     if self.do_validation:
-                        print 'Epoch = {0:.2f}, train loss = {1}, validation loss = {2}'.format(epoch, trn_loss, val_loss)
+                        print ('Epoch = {0:.2f}, train loss = {1}, validation loss = {2}'.format(epoch, trn_loss, val_loss))
                     else:
-                        print 'Epoch = {0:.2f}, train loss = {1}'.format(epoch, trn_loss)
+                        print ('Epoch = {0:.2f}, train loss = {1}'.format(epoch, trn_loss))
 
             # check for convergence
             if abs(diff) < tol or iter >= maxiter or patience_left <= 0:

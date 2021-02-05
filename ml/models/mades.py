@@ -1,4 +1,4 @@
-from itertools import izip
+# from itertools import zip
 
 import numpy as np
 import numpy.random as rng
@@ -69,7 +69,7 @@ def create_masks(degrees):
 
     Ms = []
 
-    for l, (d0, d1) in enumerate(izip(degrees[:-1], degrees[1:])):
+    for l, (d0, d1) in enumerate(zip(degrees[:-1], degrees[1:])):
         M = d0[:, np.newaxis] <= d1
         M = theano.shared(M.astype(dtype), name='M' + str(l+1), borrow=True)
         Ms.append(M)
@@ -94,7 +94,7 @@ def create_weights(n_inputs, n_hiddens, n_comps):
 
     n_units = np.concatenate(([n_inputs], n_hiddens))
 
-    for l, (N0, N1) in enumerate(izip(n_units[:-1], n_units[1:])):
+    for l, (N0, N1) in enumerate(zip(n_units[:-1], n_units[1:])):
         W = theano.shared((rng.randn(N0, N1) / np.sqrt(N0 + 1)).astype(dtype), name='W' + str(l+1), borrow=True)
         b = theano.shared(np.zeros(N1, dtype=dtype), name='b' + str(l+1), borrow=True)
         Ws.append(W)
@@ -152,7 +152,7 @@ def create_weights_SVI(n_inputs, n_hiddens):
 
     n_units = np.concatenate(([n_inputs], n_hiddens))
 
-    for l, (N0, N1) in enumerate(izip(n_units[:-1], n_units[1:])):
+    for l, (N0, N1) in enumerate(zip(n_units[:-1], n_units[1:])):
         mW = theano.shared((rng.randn(N0, N1) / np.sqrt(N0 + 1)).astype(dtype), name='mW' + str(l+1), borrow=True)
         mb = theano.shared(np.zeros(N1, dtype=dtype), name='mb' + str(l+1), borrow=True)
         sW = theano.shared(-5.0 * np.ones([N0, N1], dtype=dtype), name='sW' + str(l+1), borrow=True)
@@ -215,7 +215,7 @@ class GaussianMade:
         h = self.input
 
         # feedforward propagation
-        for l, (M, W, b) in enumerate(izip(Ms, Ws, bs)):
+        for l, (M, W, b) in enumerate(zip(Ms, Ws, bs)):
             h = f(tt.dot(h, M * W) + b)
             h.name = 'h' + str(l + 1)
 
@@ -353,7 +353,7 @@ class MixtureOfGaussiansMade:
         h = self.input
 
         # feedforward propagation
-        for l, (M, W, b) in enumerate(izip(Ms, Ws, bs)):
+        for l, (M, W, b) in enumerate(zip(Ms, Ws, bs)):
             h = f(tt.dot(h, M * W) + b)
             h.name = 'h' + str(l + 1)
 
@@ -502,7 +502,7 @@ class ConditionalGaussianMade:
         # feedforward propagation
         h = f(tt.dot(self.input, Wx) + tt.dot(self.y, Ms[0] * Ws[0]) + bs[0])
         h.name = 'h1'
-        for l, (M, W, b) in enumerate(izip(Ms[1:], Ws[1:], bs[1:])):
+        for l, (M, W, b) in enumerate(zip(Ms[1:], Ws[1:], bs[1:])):
             h = f(tt.dot(h, M * W) + b)
             h.name = 'h' + str(l + 2)
 
@@ -651,7 +651,7 @@ class ConditionalMixtureOfGaussiansMade:
         # feedforward propagation
         h = f(tt.dot(self.input, Wx) + tt.dot(self.y, Ms[0] * Ws[0]) + bs[0])
         h.name = 'h1'
-        for l, (M, W, b) in enumerate(izip(Ms[1:], Ws[1:], bs[1:])):
+        for l, (M, W, b) in enumerate(zip(Ms[1:], Ws[1:], bs[1:])):
             h = f(tt.dot(h, M * W) + b)
             h.name = 'h' + str(l + 2)
 

@@ -1,10 +1,13 @@
 # train density estimators on various datasets
 
-from __future__ import division
+# from __future__ import division
 
 import numpy as np
 import scipy.misc
 import matplotlib.pyplot as plt
+
+import sys
+sys.path.insert(0, '/home/ghalebik/projects/weighted_diffpriv/maf')
 
 import ml.trainers as trainers
 import ml.models.mades as mades
@@ -27,14 +30,14 @@ data_name = None
 
 # parameters for training
 minibatch = 100
-patience = 30
+patience = 10
 monitor_every = 1
 weight_decay_rate = 1.0e-6
 a_made = 1.0e-3
 a_flow = 1.0e-4
 
 
-def load_data(name):
+def load_data(name, data_trn=None, data_val=None, labels_trn=None, labels_val=None):
     """
     Loads the dataset. Has to be called before anything else.
     :param name: string, the dataset's name
@@ -47,8 +50,16 @@ def load_data(name):
     if data_name == name:
         return
 
-    if name == 'mnist':
-        data = datasets.MNIST(logit=True, dequantize=True)
+    if name == 'custom':
+        # from maf.datasets import mnist 
+        from datasets import custom 
+        data = custom.CUSTOM(data_trn, data_val, labels_trn, labels_val, logit=True, dequantize=False)
+        data_name = name
+
+    elif name == 'mnist':
+        # from maf.datasets import mnist 
+        from datasets import mnist 
+        data = mnist.MNIST(logit=True, dequantize=True)
         data_name = name
 
     elif name == 'bsds300':
@@ -72,7 +83,8 @@ def load_data(name):
         data_name = name
 
     elif name == 'miniboone':
-        data = datasets.MINIBOONE()
+        from datasets import miniboone 
+        data = miniboone.MINIBOONE()
         data_name = name
 
     else:
@@ -250,6 +262,16 @@ def train_maf_cond(n_hiddens, act_fun, n_mades, mode):
     save_model(model, 'maf_cond', mode, n_hiddens, act_fun, n_mades, True)
 
 
+def train_maf_cond_custom(n_hiddens, act_fun, n_mades, mode):
+
+    assert is_data_loaded(), 'Dataset hasn\'t been loaded'
+    model = mafs.ConditionalMaskedAutoregressiveFlow(data.n_labels, data.n_dims, n_hiddens, act_fun, n_mades, mode=mode)
+    train_cond(model, a_flow)
+    save_model(model, 'maf_cond', mode, n_hiddens, act_fun, n_mades, True)
+
+    return model
+
+
 def train_maf_on_made(n_hiddens, act_fun, n_layers, n_comps, mode):
 
     assert is_data_loaded(), 'Dataset hasn\'t been loaded'
@@ -310,7 +332,7 @@ def evaluate(model, split, n_samples=None):
 
         # calculate log probability
         logprobs = model.eval([data_split.y, data_split.x])
-        print 'logprob(x|y) = {0:.2f} +/- {1:.2f}'.format(logprobs.mean(), 2 * logprobs.std() / np.sqrt(data_split.N))
+        print ('logprob(x|y) = {0:.2f} +/- {1:.2f}').format(logprobs.mean(), 2 * logprobs.std() / np.sqrt(data_split.N))
 
         # classify test set
         logprobs = np.empty([data_split.N, data.n_labels])
@@ -321,8 +343,8 @@ def evaluate(model, split, n_samples=None):
         predict_label = np.argmax(logprobs, axis=1)
         accuracy = (predict_label == data_split.labels).astype(float)
         logprobs = scipy.misc.logsumexp(logprobs, axis=1) - np.log(logprobs.shape[1])
-        print 'logprob(x) = {0:.2f} +/- {1:.2f}'.format(logprobs.mean(), 2 * logprobs.std() / np.sqrt(data_split.N))
-        print 'classification accuracy = {0:.2%} +/- {1:.2%}'.format(accuracy.mean(), 2 * accuracy.std() / np.sqrt(data_split.N))
+        print ('logprob(x) = {0:.2f} +/- {1:.2f}'.format(logprobs.mean(), 2 * logprobs.std() / np.sqrt(data_split.N)))
+        print ('classification accuracy = {0:.2%} +/- {1:.2%}'.format(accuracy.mean(), 2 * accuracy.std() / np.sqrt(data_split.N)))
 
         # generate data conditioned on label
         if n_samples is not None:
@@ -360,7 +382,7 @@ def evaluate(model, split, n_samples=None):
 
         # calculate average log probability
         logprobs = model.eval(data_split.x)
-        print 'logprob(x) = {0:.2f} +/- {1:.2f}'.format(logprobs.mean(), 2 * logprobs.std() / np.sqrt(data_split.N))
+        print ('logprob(x) = {0:.2f} +/- {1:.2f}'.format(logprobs.mean(), 2 * logprobs.std() / np.sqrt(data_split.N)))
 
         # generate data
         if n_samples is not None:
@@ -484,7 +506,7 @@ def evaluate_random_numbers(model, split, n_marginals=5):
     # estimate kl to unit gaussian
     q = pdfs.fit_gaussian(u)
     p = pdfs.Gaussian(m=np.zeros(data.n_dims), S=np.eye(data.n_dims))
-    print 'KL(q||p) = {0:.2f}'.format(q.kl(p))
+    print ('KL(q||p) = {0:.2f}'.format(q.kl(p)))
 
     # plot some marginals
     util.plot_hist_marginals(u[:, :n_marginals])
@@ -510,7 +532,7 @@ def fit_and_evaluate_gaussian(split, cond=False, use_image_space=False, return_a
 
     if cond:
         comps = []
-        for i in xrange(data.n_labels):
+        for i in range(data.n_labels):
             idx = data.trn.labels == i
             comp = pdfs.fit_gaussian(data.trn.x[idx])
             comps.append(comp)

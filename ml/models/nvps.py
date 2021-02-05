@@ -1,4 +1,4 @@
-from itertools import izip
+# from itertools import zip
 
 import numpy as np
 import numpy.random as rng
@@ -301,7 +301,7 @@ class RealNVP:
 
         if getattr(self, 'batch_norm', False):
 
-            for layer, bn in izip(self.layers[::-1], self.bns[::-1]):
+            for layer, bn in zip(self.layers[::-1], self.bns[::-1]):
                 x = bn.eval_inv(x)
                 x = layer.eval_forward(x)
 
@@ -427,7 +427,7 @@ class ConditionalRealNVP:
 
         if getattr(self, 'batch_norm', False):
 
-            for layer, bn in izip(self.layers[::-1], self.bns[::-1]):
+            for layer, bn in zip(self.layers[::-1], self.bns[::-1]):
                 y = bn.eval_inv(y)
                 y = layer.eval_forward(xx, y)
 

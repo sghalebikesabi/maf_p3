@@ -2,6 +2,7 @@
 # specific files and foders
 .idea/
 .DS_Store
+.vscode
 
 # python bytecode files
 *.pyc
@@ -15,3 +16,5 @@
 # text editor's temporary files
 *~
 
+# data
+data/

@@ -1,4 +1,4 @@
-from itertools import izip
+# from itertools import zip
 
 import numpy as np
 import numpy.random as rng
@@ -242,13 +242,13 @@ class MoG(Generator):
         if ms is not None:
 
             if Ps is not None:
-                self.xs = [Gaussian(m=m, P=P) for m, P in izip(ms, Ps)]
+                self.xs = [Gaussian(m=m, P=P) for m, P in zip(ms, Ps)]
 
             elif Us is not None:
-                self.xs = [Gaussian(m=m, U=U) for m, U in izip(ms, Us)]
+                self.xs = [Gaussian(m=m, U=U) for m, U in zip(ms, Us)]
 
             elif Ss is not None:
-                self.xs = [Gaussian(m=m, S=S) for m, S in izip(ms, Ss)]
+                self.xs = [Gaussian(m=m, S=S) for m, S in zip(ms, Ss)]
 
             else:
                 raise ValueError('Precision information missing.')
@@ -298,7 +298,7 @@ class MoG(Generator):
 
         lcs = np.empty_like(self.a)
 
-        for i, (x, y) in enumerate(izip(self.xs, ys)):
+        for i, (x, y) in enumerate(zip(self.xs, ys)):
 
             lcs[i] = x.logdetP + other.logdetP - y.logdetP
             lcs[i] -= np.dot(x.m, np.dot(x.P, x.m)) + np.dot(other.m, np.dot(other.P, other.m)) - np.dot(y.m, np.dot(y.P, y.m))
@@ -331,7 +331,7 @@ class MoG(Generator):
 
         lcs = np.empty_like(self.a)
 
-        for i, (x, y) in enumerate(izip(self.xs, ys)):
+        for i, (x, y) in enumerate(zip(self.xs, ys)):
 
             lcs[i] = x.logdetP - other.logdetP - y.logdetP
             lcs[i] -= np.dot(x.m, np.dot(x.P, x.m)) - np.dot(other.m, np.dot(other.P, other.m)) - np.dot(y.m, np.dot(y.P, y.m))
@@ -361,8 +361,8 @@ class MoG(Generator):
         ms = [x.m for x in self.xs]
         m = np.dot(self.a, np.array(ms))
 
-        msqs = [x.S + np.outer(mi, mi) for x, mi in izip(self.xs, ms)]
-        S = np.sum(np.array([a * msq for a, msq in izip(self.a, msqs)]), axis=0) - np.outer(m, m)
+        msqs = [x.S + np.outer(mi, mi) for x, mi in zip(self.xs, ms)]
+        S = np.sum(np.array([a * msq for a, msq in zip(self.a, msqs)]), axis=0) - np.outer(m, m)
 
         return m, S
 
@@ -463,7 +463,7 @@ def fit_mog(x, n_components, w=None, tol=1.0e-9, maxiter=float('inf'), verbose=F
         iter += 1
         diff = loglik - loglik_prev
         assert diff >= 0.0, 'Log likelihood decreased! There is a bug somewhere!'
-        if verbose: print 'Iteration = {0}, log likelihood = {1}, diff = {2}'.format(iter, loglik, diff)
+        if verbose: print ('Iteration = {0}, log likelihood = {1}, diff = {2}'.format(iter, loglik, diff))
         if diff < tol or iter > maxiter: break
         loglik_prev = loglik
 
